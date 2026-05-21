@@ -14,7 +14,7 @@ ANTHROPIC_KEY = os.environ.get('ANTHROPIC_KEY', '').strip()
 def claude_call(prompt, max_tokens=400):
     url = "https://api.anthropic.com/v1/messages"
     data = json.dumps({
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-sonnet-4-5",
         "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": prompt}]
     }).encode('utf-8')
@@ -64,14 +64,7 @@ def orchestrate():
 
 @app.route('/health')
 def health():
-    key_len = len(ANTHROPIC_KEY)
-    key_start = ANTHROPIC_KEY[:10] if ANTHROPIC_KEY else "LEER"
-    return jsonify({
-        "status": "ok",
-        "key_set": bool(ANTHROPIC_KEY),
-        "key_length": key_len,
-        "key_start": key_start
-    })
+    return jsonify({"status": "ok", "key_set": bool(ANTHROPIC_KEY)})
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
