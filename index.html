@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ValéTrading — KI Agenten</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080810;--bg2:#0f0f1a;--bg3:#161625;--bg4:#1e1e30;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.12);
+  --text:#dddde8;--muted:#7070a0;--hint:#3a3a58;
+  --green:#00e676;--green-bg:rgba(0,230,118,0.08);--green-bd:rgba(0,230,118,0.2);
+  --red:#ff4d6d;--red-bg:rgba(255,77,109,0.08);--red-bd:rgba(255,77,109,0.2);
+  --yellow:#ffd740;--yellow-bg:rgba(255,215,64,0.08);--yellow-bd:rgba(255,215,64,0.2);
+  --accent:#6c63ff;--accent-bg:rgba(108,99,255,0.1);
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(108,99,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.02) 1px,transparent 1px);
+  background-size:32px 32px}
+button{font-family:var(--sans);cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:6px;padding:7px 14px;font-size:12px;transition:all .15s}
+button:hover{background:var(--bg4);border-color:rgba(255,255,255,0.2)}
+button:disabled{opacity:.3;cursor:not-allowed}
+button.primary{background:var(--text);color:var(--bg);border-color:transparent;font-weight:500}
+button.primary:hover{opacity:.82;background:var(--text)}
+button.sm{padding:4px 10px;font-size:11px}
+button.accent{background:var(--accent);color:#fff;border-color:transparent}
+button.accent:hover{opacity:.82;background:var(--accent)}
+input,textarea,select{font-family:var(--sans);background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:8px 11px;font-size:12px;outline:none;transition:border-color .2s;width:100%}
+input:focus,textarea:focus{border-color:var(--accent)}
+input::placeholder{color:var(--hint)}
+textarea{resize:vertical;line-height:1.6}
+.mono{font-family:var(--mono)}
+
+/* NAV */
+#nav{position:sticky;top:0;z-index:100;background:rgba(8,8,16,.96);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;flex-wrap:wrap;position:relative;z-index:10}
+.brand{font-family:var(--mono);font-size:16px;font-weight:600;margin-right:24px;padding:14px 0;letter-spacing:-.02em}
+.brand em{color:var(--accent);font-style:normal}
+.ntab{font-family:var(--mono);font-size:10px;padding:14px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);border-radius:0;letter-spacing:.06em;text-transform:uppercase;transition:color .15s}
+.ntab:hover{background:none;color:var(--text)}
+.ntab.on{color:var(--text);border-bottom-color:var(--accent)}
+.nspace{flex:1}
+.nright{display:flex;align-items:center;gap:10px;padding:8px 0}
+.nts{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+.nstatus{width:6px;height:6px;border-radius:50%;background:var(--hint)}
+.nstatus.ok{background:var(--green)}
+
+/* PAGES */
+.pg{display:none;max-width:1140px;margin:0 auto;padding:28px 24px;position:relative;z-index:1}
+.pg.on{display:block}
+
+/* PROGRESS */
+.prog{margin-bottom:18px;display:none}
+.pb{height:1px;background:var(--border);border-radius:1px;overflow:hidden;margin-bottom:6px}
+.pf{height:100%;background:var(--accent);transition:width .4s ease}
+.pl{font-family:var(--mono);font-size:10px;color:var(--muted)}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.met{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.met-l{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.met-v{font-family:var(--mono);font-size:28px;font-weight:600}
+.met-v.g{color:var(--green)}.met-v.y{color:var(--yellow)}.met-v.r{color:var(--red)}
+
+/* STOCK MANAGEMENT */
+.stock-mgmt{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px}
+.stock-mgmt-title{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.stock-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.stock-tag{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:12px}
+.stock-tag-del{cursor:pointer;color:var(--muted);font-size:14px;line-height:1}
+.stock-tag-del:hover{color:var(--red)}
+.stock-add-row{display:flex;gap:8px}
+.stock-add-row input{width:120px;font-family:var(--mono)}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s}
+.card:hover{transform:translateY(-2px);border-color:var(--border2)}
+.card.buy{border-left:3px solid var(--green)}.card.sell{border-left:3px solid var(--red)}.card.hold{border-left:3px solid var(--yellow)}.card.loading{border-left:3px solid var(--hint)}
+.ch{padding:13px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.ct{font-family:var(--mono);font-size:15px;font-weight:600}.cn{font-size:11px;color:var(--muted);margin-top:2px}
+.badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:4px 11px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.badge.buy{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.badge.sell{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.badge.hold{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-bd)}
+.badge.loading{background:var(--accent-bg);color:var(--accent);border:1px solid rgba(108,99,255,.3);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.cb{padding:13px 16px}
+.cr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.clbl{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:58px;letter-spacing:.06em;text-transform:uppercase}
+.ctrack{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.cfill{height:100%;border-radius:2px;transition:width 1s}
+.cfill.buy{background:var(--green)}.cfill.sell{background:var(--red)}.cfill.hold{background:var(--yellow)}
+.cpct{font-family:var(--mono);font-size:11px;font-weight:600;min-width:32px;text-align:right}
+.cpct.buy{color:var(--green)}.cpct.sell{color:var(--red)}.cpct.hold{color:var(--yellow)}
+.agrow{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:10px}
+.ap{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 3px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.ap.buy{border-color:var(--green-bd)}.ap.sell{border-color:var(--red-bd)}.ap.hold{border-color:var(--yellow-bd)}
+.dot{width:6px;height:6px;border-radius:50%}
+.dot.buy{background:var(--green)}.dot.sell{background:var(--red)}.dot.hold{background:var(--yellow)}.dot.loading{background:var(--hint)}
+.apn{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center}
+.ee{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.eeb{background:var(--bg3);border-radius:6px;padding:7px 9px}
+.eel{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
+.eev{font-size:11px;line-height:1.4}
+.csum{font-size:11px;color:var(--muted);line-height:1.6;border-top:1px solid var(--border);padding-top:8px}
+.chint{font-family:var(--mono);font-size:9px;color:var(--hint);text-align:center;margin-top:7px}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px;color:var(--muted)}
+.empty-t{font-size:14px;color:var(--text);margin-bottom:6px}
+
+/* DETAIL */
+.dback{font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:5px}
+.dback:hover{color:var(--text)}
+.dhdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.dtick{font-family:var(--mono);font-size:26px;font-weight:700}.dname{font-size:13px;color:var(--muted);margin-top:3px}
+.fbox{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px}
+.slbl{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.ftxt{font-size:13px;line-height:1.8;white-space:pre-wrap}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.acard{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.acard.buy{border-left:3px solid var(--green)}.acard.sell{border-left:3px solid var(--red)}.acard.hold{border-left:3px solid var(--yellow)}
+.ahdr{background:var(--bg3);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start}
+.ahname{font-size:13px;font-weight:500}.ahdesc{font-size:10px;color:var(--muted);margin-top:2px}
+.abody{padding:12px 14px;font-size:11px;color:var(--muted);line-height:1.75;white-space:pre-wrap}
+
+/* AGENTEN PAGE */
+.aov{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.aovh{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.aovt{font-size:14px;font-weight:500;margin-bottom:3px}.aovd{font-size:11px;color:var(--muted)}
+.aovb{padding:14px 18px}
+.wlist{list-style:none;display:flex;flex-direction:column;gap:5px}
+.wlist li{font-size:12px;color:var(--muted);display:flex;gap:7px;line-height:1.5}
+.wlist li::before{content:"→";color:var(--hint);flex-shrink:0;font-size:11px;margin-top:1px}
+.srows{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+
+/* EDITOR */
+.elayout{display:grid;grid-template-columns:220px 1fr;gap:14px}
+.esb{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.esbt{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:12px 14px;border-bottom:1px solid var(--border)}
+.esbi{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.esbi:hover{background:var(--bg3)}.esbi.on{background:var(--accent-bg);border-left:2px solid var(--accent)}
+.esbin{font-size:12px;font-weight:500;margin-bottom:2px}.esbid{font-size:10px;color:var(--muted);line-height:1.4}
+.emain{display:flex;flex-direction:column;gap:12px}
+.ecard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.ecardt{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.tbox{background:var(--bg3);border-radius:8px;padding:10px 12px}
+.tboxt{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.tboxb{font-size:11px;color:var(--muted);line-height:1.7}
+.saved{font-family:var(--mono);font-size:11px;color:var(--green);display:none}
+
+/* ABOUT */
+.aflow{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.fstep{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)}
+.fstep:last-child{border-bottom:none}
+.fnum{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:22px;margin-top:1px}
+.finfo{font-size:12px;color:var(--muted);line-height:1.55}
+.finfo strong{color:var(--text);font-weight:500}
+.acards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.aac{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+.aact{font-size:13px;font-weight:500;margin-bottom:6px}
+.aacb{font-size:12px;color:var(--muted);line-height:1.7}
+
+/* ERR */
+.errbox{background:var(--red-bg);border:1px solid var(--red-bd);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;display:none}
+</style>
+</head>
+<body>
+<div id="nav">
+  <span class="brand">Valé<em>Trading</em></span>
+  <button class="ntab on" onclick="gt('dash',this)">Dashboard</button>
+  <button class="ntab" onclick="gt('det',this)" id="tabDet" style="display:none">Detail</button>
+  <button class="ntab" onclick="gt('agt',this)">Agenten</button>
+  <button class="ntab" onclick="gt('ed',this)">Editor</button>
+  <button class="ntab" onclick="gt('about',this)">Info</button>
+  <div class="nspace"></div>
+  <div class="nright">
+    <div class="nstatus" id="nstatus" title="Server-Status"></div>
+    <span class="nts" id="nts">Keine Analyse</span>
+    <button class="primary" id="runBtn" onclick="vtStart()">▶ Analysieren</button>
+  </div>
+</div>
+
+<div class="pg on" id="pg-dash">
+  <div class="prog" id="prog"><div class="pb"><div class="pf" id="pf" style="width:0%"></div></div><div class="pl" id="pl">Starte...</div></div>
+  <div class="errbox" id="errbox"></div>
+  <div class="stock-mgmt">
+    <div class="stock-mgmt-title">
+      <span>Beobachtete Aktien</span>
+      <span style="font-size:11px;color:var(--muted)" id="stockCount">5 Aktien</span>
+    </div>
+    <div class="stock-tags" id="stockTags"></div>
+    <div class="stock-add-row">
+      <input id="newTicker" placeholder="Ticker (z.B. NVDA)" maxlength="6" style="width:120px;text-transform:uppercase" onkeydown="if(event.key==='Enter')addStock()" />
+      <input id="newName" placeholder="Name (z.B. Nvidia)" style="width:160px" onkeydown="if(event.key==='Enter')addStock()" />
+      <button onclick="addStock()" class="accent">+ Hinzufügen</button>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="met"><div class="met-l">Kaufen</div><div class="met-v g" id="cB">—</div></div>
+    <div class="met"><div class="met-l">Halten</div><div class="met-v y" id="cH">—</div></div>
+    <div class="met"><div class="met-l">Verkaufen</div><div class="met-v r" id="cS">—</div></div>
+  </div>
+  <div class="cards" id="cGrid">
+    <div class="empty"><div class="empty-t">Bereit zur Analyse</div><div>Auf Analysieren klicken um alle Aktien zu analysieren</div></div>
+  </div>
+</div>
+
+<div class="pg" id="pg-det">
+  <div class="dback" onclick="gt('dash',null)">← Zurück</div>
+  <div class="dhdr">
+    <div><div class="dtick" id="dTick">—</div><div class="dname" id="dNm">—</div></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">
+      <span class="badge loading" id="dBadge">...</span>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted)" id="dConf">—</span>
+    </div>
+  </div>
+  <div class="fbox"><div class="slbl">Orchestrator — Finale Entscheidung</div><div class="ftxt" id="dFin">—</div></div>
+  <div class="slbl" style="margin-bottom:12px">Die 5 Agenten im Detail</div>
+  <div class="agrid" id="dAgt"></div>
+</div>
+
+<div class="pg" id="pg-agt"><div id="agtPg"></div></div>
+<div class="pg" id="pg-ed"><div class="elayout" id="edLay"></div></div>
+
+<div class="pg" id="pg-about">
+  <div class="aflow">
+    <div class="slbl">Analyse-Ablauf</div>
+    <div class="fstep"><div class="fnum">01</div><div class="finfo"><strong>Aktien verwalten</strong> — Füge beliebige Aktien hinzu oder entferne sie. Der Ticker (z.B. AAPL) und der Name werden gespeichert.</div></div>
+    <div class="fstep"><div class="fnum">02</div><div class="finfo"><strong>Fundamental-Agent</strong> — KGV, Umsatzwachstum, Gewinnmarge, Verschuldung, Analysten-Kursziele.</div></div>
+    <div class="fstep"><div class="fnum">03</div><div class="finfo"><strong>Chart-Agent</strong> — RSI, MACD, gleitende Durchschnitte, Support/Resistance, Volumen.</div></div>
+    <div class="fstep"><div class="fnum">04</div><div class="finfo"><strong>Zyklen-Agent</strong> — Saisonalität, Konjunkturphase, Zinsniveau, historische Muster.</div></div>
+    <div class="fstep"><div class="fnum">05</div><div class="finfo"><strong>Marktdynamik-Agent</strong> — Sektor-Rotation, institutionelles Interesse, Short-Interest.</div></div>
+    <div class="fstep"><div class="fnum">06</div><div class="finfo"><strong>Sentiment-Agent</strong> — Nachrichtenlage, Analysten-Meinungen, Social-Media-Stimmung.</div></div>
+    <div class="fstep"><div class="fnum">07</div><div class="finfo"><strong>Orchestrator</strong> — Gewichtet alle 5 Analysen und gibt ein finales Signal mit Konfidenz aus.</div></div>
+  </div>
+  <div class="acards">
+    <div class="aac"><div class="aact">Aktien hinzufügen</div><div class="aacb">Trage Ticker-Symbol und Name ein und klicke auf +. Die Aktie wird sofort zur Liste hinzugefügt und beim nächsten Analysedurchlauf berücksichtigt.</div></div>
+    <div class="aac"><div class="aact">Agenten anpassen</div><div class="aacb">Im Editor-Tab kannst du die Instruktionen jedes Agenten verändern. Änderungen werden sofort beim nächsten Durchlauf verwendet.</div></div>
+    <div class="aac"><div class="aact">Konfidenz-Score</div><div class="aacb">Jeder Agent gibt 0–100% an. Der Orchestrator mittelt diese. Über 75% = starkes Signal. Unter 55% = vorsichtig sein.</div></div>
+    <div class="aac"><div class="aact">Wichtiger Hinweis</div><div class="aacb">KI-Analysen — keine Finanzberatung. Immer Stop-Loss Orders setzen. Nur Kapital einsetzen das du entbehren kannst.</div></div>
+  </div>
+</div>
+
+<script>
+const AM=[
+  {k:'fund',l:'Fundamental',s:'FUND',d:'Finanzielle Gesundheit & Bewertung',was:['KGV — günstig oder teuer?','Umsatz- und Gewinnwachstum','Gewinnmarge und Eigenkapitalrendite','Verschuldungsgrad','Analysten-Kursziele']},
+  {k:'chart',l:'Charttechnik',s:'CHART',d:'Kursmuster, Trends, Indikatoren',was:['RSI — überkauft/überverkauft?','MACD — Momentum','Gleitende Durchschnitte 50/200','Support/Resistance','Volumen-Bestätigung']},
+  {k:'zyklen',l:'Zyklen',s:'ZYKLUS',d:'Saisonalität & Makroökonomie',was:['Saisonale Monatsmuster','Konjunkturphase','Zinsniveau und Fed-Politik','Sektorzyklen','Historische Jahreszeitmuster']},
+  {k:'markt',l:'Marktdynamik',s:'MARKT',d:'Relative Stärke & Institutionen',was:['Relative Stärke vs. S&P 500','Sektor-Rotation','Institutionelle Beteiligung','Short-Interest','Beta und Volatilität']},
+  {k:'sent',l:'Sentiment',s:'SENT',d:'News, Analysten, Social Media',was:['Aktuelle Nachrichtenlage','Analysten-Upgrades/Downgrades','Social Media Stimmung','Einflussreiche Investoren','Earnings-Erwartungen']},
+];
+const DP={
+  fund:`Du bist Fundamentalanalyst. Analysiere {{name}} ({{ticker}}) für {{monat}}.\nBewerte: Bewertung, Wachstum, Profitabilität, Verschuldung.\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 Satz)\nAUSSTIEG: (Stop-Loss, 1 Satz)\nBEGRÜNDUNG: (2 Sätze)`,
+  chart:`Du bist technischer Analyst. Analysiere {{name}} ({{ticker}}) charttechnisch für {{monat}}.\nBewerte: Trend, RSI, MACD, Support/Resistance, Volumen.\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 Satz)\nAUSSTIEG: (Stop-Loss, 1 Satz)\nBEGRÜNDUNG: (2 Sätze)`,
+  zyklen:`Du bist Zyklenanalyst. Analysiere {{name}} ({{ticker}}) für {{monat}}.\nBewerte: Saisonalität, Konjunkturphase, Zinsniveau.\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 Satz)\nAUSSTIEG: (1 Satz)\nBEGRÜNDUNG: (2 Sätze)`,
+  markt:`Du bist Marktdynamik-Analyst. Analysiere {{name}} ({{ticker}}) für {{monat}}.\nBewerte: relative Stärke, Sektor, institutionelles Interesse, Short-Interest.\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 Satz)\nAUSSTIEG: (1 Satz)\nBEGRÜNDUNG: (2 Sätze)`,
+  sent:`Du bist Sentiment-Analyst. Analysiere {{name}} ({{ticker}}) für {{monat}}.\nBewerte: Nachrichtenlage, Analysten-Konsens, Social-Media-Stimmung.\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 Satz)\nAUSSTIEG: (1 Satz)\nBEGRÜNDUNG: (2 Sätze)`,
+};
+
+let RES={}, running=false, curAgt='fund', cPrompts={}, stocks=[];
+
+function loadState(){
+  try{cPrompts=JSON.parse(localStorage.getItem('vt_p')||'{}');}catch(e){}
+  try{
+    const s=JSON.parse(localStorage.getItem('vt_stocks')||'null');
+    stocks=s||[{t:'PLTR',n:'Palantir'},{t:'MSFT',n:'Microsoft'},{t:'V',n:'Visa'},{t:'MCD',n:"McDonald's"},{t:'COST',n:'Costco'}];
+  }catch(e){stocks=[{t:'PLTR',n:'Palantir'},{t:'MSFT',n:'Microsoft'},{t:'V',n:'Visa'},{t:'MCD',n:"McDonald's"},{t:'COST',n:'Costco'}];}
+}
+function saveStocks(){try{localStorage.setItem('vt_stocks',JSON.stringify(stocks));}catch(e){}}
+function gp(k){return cPrompts[k]||DP[k];}
+function sp(k,v){cPrompts[k]=v;try{localStorage.setItem('vt_p',JSON.stringify(cPrompts));}catch(e){};}
+
+function sc(t){if(!t)return'loading';const u=t.toUpperCase();if(u.includes('KAUFEN'))return'buy';if(u.includes('VERKAUFEN'))return'sell';return'hold';}
+function sl(c){return c==='buy'?'KAUFEN':c==='sell'?'VERKAUFEN':c==='hold'?'HALTEN':'...';}
+function ec(t){if(!t)return 0;const m=t.match(/(\d{1,3})\s*%/);return m?Math.min(100,parseInt(m[1])):0;}
+function ef(t,f){if(!t)return'—';const m=t.match(new RegExp(f+'[:\\s]+([^\\n]{1,200})','i'));return m?m[1].trim():'—';}
+
+function gt(name,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  if(btn)btn.classList.add('on');
+  if(name==='agt')rAgt();
+  if(name==='ed')rEd();
+}
+
+function renderStockTags(){
+  const el=document.getElementById('stockTags');
+  el.innerHTML=stocks.map(s=>`<span class="stock-tag"><span class="mono">${s.t}</span><span style="color:var(--muted);font-size:11px">${s.n}</span><span class="stock-tag-del" onclick="removeStock('${s.t}')">×</span></span>`).join('');
+  document.getElementById('stockCount').textContent=stocks.length+' Aktien';
+}
+
+function addStock(){
+  const t=document.getElementById('newTicker').value.trim().toUpperCase();
+  const n=document.getElementById('newName').value.trim();
+  if(!t||!n){alert('Bitte Ticker und Name eingeben');return;}
+  if(stocks.find(s=>s.t===t)){alert('Diese Aktie ist bereits in der Liste');return;}
+  stocks.push({t,n});
+  saveStocks();
+  document.getElementById('newTicker').value='';
+  document.getElementById('newName').value='';
+  renderStockTags();
+  rCards();
+}
+
+function removeStock(t){
+  if(stocks.length<=1){alert('Mindestens 1 Aktie muss vorhanden sein');return;}
+  stocks=stocks.filter(s=>s.t!==t);
+  delete RES[t];
+  saveStocks();
+  renderStockTags();
+  rCards();
+}
+
+async function apiCall(endpoint, body){
+  const r=await fetch(endpoint,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  const d=await r.json();
+  if(!d.success)throw new Error(d.error||'Unbekannter Fehler');
+  return d.result;
+}
+
+async function analyzeOne(t,n){
+  const mo=new Date().toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  const ags={};
+  for(const a of AM){
+    const p=gp(a.k).replace(/{{name}}/g,n).replace(/{{ticker}}/g,t).replace(/{{monat}}/g,mo);
+    try{ags[a.k]=await apiCall('/api/analyze',{ticker:t,name:n,agent:a.k,prompt:p});}
+    catch(e){ags[a.k]='SIGNAL: HALTEN\nKONFIDENZ: 50%\nBEGRÜNDUNG: '+e.message;}
+  }
+  const ks=x=>x?x.substring(0,110).replace(/\n/g,' '):'—';
+  const op=`Portfolio-Manager: Finales Signal für ${n} (${t}).\nAgenten:\n${AM.map(a=>a.l+': '+ks(ags[a.k])).join('\n')}\nAntworte auf Deutsch:\nSIGNAL: KAUFEN/HALTEN/VERKAUFEN\nKONFIDENZ: XX%\nEINSTIEG: (1 konkreter Satz)\nAUSSTIEG: (Stop-Loss 1 Satz)\nKURZFASSUNG: (2-3 Sätze)`;
+  let fin='';
+  try{fin=await apiCall('/api/orchestrate',{prompt:op});}
+  catch(e){fin='Fehler: '+e.message;}
+  return{ags,fin};
+}
+
+async function vtStart(){
+  if(running)return;
+  running=true;RES={};
+  document.getElementById('errbox').style.display='none';
+  const rb=document.getElementById('runBtn');
+  rb.disabled=true;rb.textContent='Läuft...';
+  document.getElementById('prog').style.display='block';
+  rCards();
+  for(let i=0;i<stocks.length;i++){
+    const{t,n}=stocks[i];
+    document.getElementById('pf').style.width=Math.round(i/stocks.length*100)+'%';
+    document.getElementById('pl').textContent=`Analysiere ${n} (${i+1}/${stocks.length})...`;
+    try{RES[t]=await analyzeOne(t,n);}
+    catch(e){showErr('Fehler bei '+n+': '+e.message);}
+    rCards();
+  }
+  document.getElementById('pf').style.width='100%';
+  document.getElementById('pl').textContent='Fertig!';
+  document.getElementById('nts').textContent='Zuletzt: '+new Date().toLocaleTimeString('de-DE');
+  rb.disabled=false;rb.textContent='▶ Neu analysieren';
+  running=false;
+  setTimeout(()=>document.getElementById('prog').style.display='none',3000);
+}
+
+function showErr(msg){const e=document.getElementById('errbox');e.textContent=msg;e.style.display='block';}
+
+function rCards(){
+  const g=document.getElementById('cGrid');
+  if(!Object.keys(RES).length&&!running){
+    g.innerHTML='<div class="empty"><div class="empty-t">Bereit zur Analyse</div><div>Auf Analysieren klicken</div></div>';
+    return;
+  }
+  g.innerHTML='';let b=0,h=0,s=0;
+  for(const{t,n}of stocks){
+    const r=RES[t],fc=r?sc(r.fin):'loading',conf=r?ec(r.fin):0;
+    if(r){if(fc==='buy')b++;else if(fc==='sell')s++;else h++;}
+    const ee=r?ef(r.fin,'EINSTIEG'):'...';
+    const ea=r?ef(r.fin,'AUSSTIEG'):'...';
+    const sm=r?ef(r.fin,'KURZFASSUNG'):'Analysiere...';
+    const pills=AM.map(a=>{const ac=r?sc(r.ags[a.k]):'loading';return`<div class="ap ${ac}"><div class="dot ${ac}"></div><div class="apn">${a.s}</div></div>`;}).join('');
+    g.innerHTML+=`<div class="card ${fc}" onclick="oDet('${t}')">
+      <div class="ch"><div><div class="ct">${t}</div><div class="cn">${n}</div></div><span class="badge ${fc}">${r?sl(fc):'...'}</span></div>
+      <div class="cb">
+        <div class="cr"><span class="clbl">Konfidenz</span><div class="ctrack"><div class="cfill ${fc}" style="width:${conf}%"></div></div><span class="cpct ${fc}">${r?conf+'%':'—'}</span></div>
+        <div class="agrow">${pills}</div>
+        <div class="ee"><div class="eeb"><div class="eel">▲ Einstieg</div><div class="eev">${ee}</div></div><div class="eeb"><div class="eel">▼ Ausstieg</div><div class="eev">${ea}</div></div></div>
+        <div class="csum">${sm}</div>
+        <div class="chint">→ Klicken für Agenten-Details</div>
+      </div></div>`;
+  }
+  document.getElementById('cB').textContent=b||'—';
+  document.getElementById('cH').textContent=h||'—';
+  document.getElementById('cS').textContent=s||'—';
+}
+
+function oDet(t){
+  const a=stocks.find(x=>x.t===t),r=RES[t];if(!r)return;
+  document.getElementById('dTick').textContent=t;
+  document.getElementById('dNm').textContent=a.n;
+  const fc=sc(r.fin);
+  const db=document.getElementById('dBadge');db.className='badge '+fc;db.textContent=sl(fc);
+  document.getElementById('dConf').textContent='Konfidenz: '+ec(r.fin)+'%';
+  document.getElementById('dFin').textContent=r.fin;
+  const ag=document.getElementById('dAgt');ag.innerHTML='';
+  for(const m of AM){
+    const txt=r.ags[m.k]||'—',ac=sc(txt);
+    ag.innerHTML+=`<div class="acard ${ac}"><div class="ahdr"><div><div class="ahname">${m.l}</div><div class="ahdesc">${m.d}</div></div><span class="badge ${ac}" style="font-size:9px;padding:2px 8px">${sl(ac)}</span></div><div class="abody">${txt}</div></div>`;
+  }
+  document.getElementById('tabDet').style.display='';
+  gt('det',document.getElementById('tabDet'));
+}
+
+function rAgt(){
+  const el=document.getElementById('agtPg');el.innerHTML='';
+  for(const m of AM){
+    const rows=stocks.map(({t})=>{
+      const r=RES[t];if(!r)return'';
+      const ac=sc(r.ags[m.k]),conf=ec(r.ags[m.k]);
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><span class="mono" style="font-size:12px;font-weight:600">${t}</span><div style="display:flex;align-items:center;gap:8px"><div class="ctrack" style="width:70px"><div class="cfill ${ac}" style="width:${conf}%"></div></div><span class="mono" style="font-size:10px;color:var(--muted);min-width:28px">${conf}%</span><span class="badge ${ac}" style="font-size:9px;padding:2px 8px">${sl(ac)}</span></div></div>`;
+    }).filter(Boolean).join('');
+    el.innerHTML+=`<div class="aov"><div class="aovh"><div><div class="aovt">${m.l}</div><div class="aovd">${m.d}</div></div><button class="sm" onclick="goEd('${m.k}')">Bearbeiten</button></div><div class="aovb"><ul class="wlist">${m.was.map(w=>`<li>${w}</li>`).join('')}</ul>${rows?`<div class="srows"><div class="mono" style="font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:7px">Letzte Signale</div>${rows}</div>`:'<div style="margin-top:9px;font-size:11px;color:var(--hint)">Noch keine Analyse.</div>'}</div></div>`;
+  }
+}
+
+function goEd(k){curAgt=k;gt('ed',document.querySelectorAll('.ntab')[3]);}
+
+function rEd(){
+  const wr=document.getElementById('edLay');
+  const sb=`<div class="esb"><div class="esbt">Agenten</div>${AM.map(a=>`<div class="esbi ${a.k===curAgt?'on':''}" onclick="curAgt='${a.k}';rEd()"><div class="esbin">${a.l}${cPrompts[a.k]?' <span style="color:var(--green);font-size:9px">✓</span>':''}</div><div class="esbid">${a.d}</div></div>`).join('')}</div>`;
+  const m=AM.find(a=>a.k===curAgt);
+  const main=`<div class="emain">
+    <div class="ecard"><div class="ecardt">Was ${m.l} analysiert</div><ul class="wlist">${m.was.map(w=>`<li>${w}</li>`).join('')}</ul><div style="margin-top:9px;font-size:11px;color:var(--muted)">Variablen: <code>{{name}}</code> <code>{{ticker}}</code> <code>{{monat}}</code></div></div>
+    <div class="ecard"><div class="ecardt"><span>Prompt bearbeiten</span>${cPrompts[m.k]?`<button class="sm" onclick="rp('${m.k}')">↺ Reset</button>`:''}</div><textarea id="pta" rows="10">${gp(m.k)}</textarea><div style="display:flex;gap:8px;align-items:center;margin-top:10px"><button class="primary" onclick="svP()">Speichern</button><span class="saved" id="svd">✓ Gespeichert</span></div></div>
+    <div class="ecard"><div class="ecardt">Tipps</div><div class="tgrid"><div class="tbox"><div class="tboxt" style="color:var(--green)">✓ Gut</div><div class="tboxb">Klares Format vorgeben<br>Auf Deutsch antworten<br>Konfidenz % verlangen<br>Konkrete Felder definieren</div></div><div class="tbox"><div class="tboxt" style="color:var(--red)">✗ Vermeiden</div><div class="tboxb">Zu viele Aufgaben<br>Kein Signal-Format<br>Widersprüchliche Anweisungen<br>Prompt über 400 Wörter</div></div></div></div>
+  </div>`;
+  wr.innerHTML=sb+main;
+}
+
+function svP(){const v=document.getElementById('pta').value;sp(curAgt,v);const s=document.getElementById('svd');s.style.display='inline';setTimeout(()=>s.style.display='none',2000);rEd();}
+function rp(k){if(!confirm('Zurücksetzen?'))return;delete cPrompts[k];try{localStorage.setItem('vt_p',JSON.stringify(cPrompts));}catch(e){}rEd();}
+
+async function checkHealth(){
+  try{
+    const r=await fetch('/health');
+    const d=await r.json();
+    const dot=document.getElementById('nstatus');
+    dot.className='nstatus '+(d.key_set?'ok':'');
+    dot.title=d.key_set?'Server OK — API Key gesetzt':'Server OK — API Key fehlt!';
+  }catch(e){document.getElementById('nstatus').title='Server nicht erreichbar';}
+}
+
+loadState();
+renderStockTags();
+rCards();
+checkHealth();
+</script>
+</body>
+</html>
