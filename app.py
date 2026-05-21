@@ -1,10 +1,10 @@
 import os
 import json
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import urllib.request
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__)
 CORS(app)
 
 ANTHROPIC_KEY = os.environ.get('ANTHROPIC_KEY', '')
@@ -28,16 +28,12 @@ def claude_call(prompt, max_tokens=400):
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return send_file('index.html')
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
     body = request.json
-    ticker = body.get('ticker', '')
-    name = body.get('name', '')
-    agent = body.get('agent', '')
     prompt = body.get('prompt', '')
-
     try:
         result = claude_call(prompt, 400)
         return jsonify({"success": True, "result": result})
